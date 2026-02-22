@@ -23,6 +23,7 @@
 #include <linux/sysinfo.h>
 #include <linux/utsname.h>
 #include <linux/ai.h>
+#include <linux/sched/loadavg.h>
 #include <linux/jiffies.h>
 #include <linux/sysctl.h>
 #include <linux/printk.h>

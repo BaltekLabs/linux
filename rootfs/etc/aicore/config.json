@@ -1,0 +1,28 @@
+{
+    "_comment": "Linux AI OS - aicore daemon configuration",
+    "_comment2": "Copy this file to /etc/aicore/config.json and fill in api_key",
+
+    "backend": "anthropic",
+    "model": "claude-opus-4-6",
+    "api_url": "https://api.anthropic.com/v1/messages",
+    "api_key": "",
+    "max_tokens": 8192,
+    "timeout_secs": 60,
+
+    "socket_path": "/run/aicore.sock",
+    "dev_ai_path": "/dev/ai",
+    "log_path": "/var/log/aicore.log",
+    "log_level": 2,
+
+    "history_depth": 20,
+
+    "system_prompt": "You are an AI assistant natively integrated into the Linux kernel via the OpenClaw interface. You have direct access to system state via /proc/ai/ and can invoke kernel tools (claws) to inspect and manage the system. Be concise and helpful. When performing actions, explain what you are doing first.",
+
+    "include_sysinfo": true,
+    "include_resources": true,
+
+    "enable_shell": true,
+    "enable_file_write": true,
+    "enable_sysctl_write": false,
+    "enable_service_ctl": false
+}

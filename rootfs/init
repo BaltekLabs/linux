@@ -1,0 +1,87 @@
+#!/bin/sh
+# init - Linux AI OS early userspace init
+#
+# This is /init inside the initramfs. The kernel executes this first.
+# We:
+#   1. Mount essential pseudo-filesystems
+#   2. Set up /dev via devtmpfs (kernel already mounted it if DEVTMPFS_MOUNT=y)
+#   3. Configure network (DHCP via udhcpc)
+#   4. Load the ai_core kernel module (if built as module)
+#   5. Start aicore daemon (bridges /dev/ai <-> LLM API)
+#   6. Launch DTE (the AI terminal UI) on tty1
+
+set -e
+
+# Mount essential filesystems
+mount -t proc     proc    /proc  2>/dev/null || true
+mount -t sysfs    sysfs   /sys   2>/dev/null || true
+mount -t devtmpfs devtmpfs /dev  2>/dev/null || true
+mount -t tmpfs    tmpfs   /tmp   -o mode=1777 2>/dev/null || true
+mount -t tmpfs    tmpfs   /run   -o mode=0755 2>/dev/null || true
+
+# Create essential device nodes if devtmpfs unavailable
+[ -c /dev/null ]    || mknod -m 666 /dev/null    c 1 3
+[ -c /dev/zero ]    || mknod -m 666 /dev/zero    c 1 5
+[ -c /dev/urandom ] || mknod -m 666 /dev/urandom c 1 9
+[ -c /dev/tty ]     || mknod -m 666 /dev/tty     c 5 0
+[ -c /dev/tty1 ]    || mknod -m 600 /dev/tty1    c 4 1
+[ -c /dev/console ] || mknod -m 600 /dev/console c 5 1
+
+# Set hostname
+hostname ai-os 2>/dev/null || true
+
+# Bring up loopback
+ip link set lo up 2>/dev/null || ifconfig lo up 2>/dev/null || true
+
+# DHCP on first ethernet interface
+for iface in eth0 ens3 enp0s3 enp1s0; do
+    if ip link show "$iface" >/dev/null 2>&1; then
+        ip link set "$iface" up 2>/dev/null || true
+        udhcpc -i "$iface" -q -n 2>/dev/null || true
+        break
+    fi
+done
+
+# Load ai_core module (no-op if built-in)
+modprobe ai_core 2>/dev/null || true
+
+# Print banner
+clear
+cat <<'BANNER'
+  ___    ___     ___  ____
+ / _ \  / __|   / _ \/ ___|
+| | | | \__ \  | | | \___ \
+| |_| | ___) | | |_| |___) |
+ \___/ |____/   \___/|____/
+
+  Linux AI OS - Powered by kernel/ai + OpenClaw
+  Model: see /etc/aicore/config.json
+BANNER
+
+echo ""
+echo "Starting aicore daemon..."
+
+# Start aicore daemon (background)
+if [ -x /usr/sbin/aicore ]; then
+    /usr/sbin/aicore --config /etc/aicore/config.json --daemon 2>/var/log/aicore.log &
+    AICORE_PID=$!
+    echo "aicore started (pid=$AICORE_PID)"
+    # Give it a moment to connect to /dev/ai and LLM API
+    sleep 1
+else
+    echo "[warn] aicore not found - AI features unavailable"
+fi
+
+# Launch DTE on tty1 (this becomes the "desktop")
+echo "Launching DTE..."
+if [ -x /usr/bin/dte ]; then
+    # Run DTE on tty1, restart on exit
+    while true; do
+        setsid /usr/bin/dte </dev/tty1 >/dev/tty1 2>&1
+        echo "DTE exited - restarting in 2s..."
+        sleep 2
+    done
+else
+    echo "[warn] dte not found - dropping to shell"
+    exec /bin/sh
+fi

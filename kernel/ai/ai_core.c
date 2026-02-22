@@ -559,7 +559,6 @@ static long ai_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EBUSY; /* Another daemon is already registered */
 		}
 		client->is_daemon = true;
-		client->flags |= AI_FLAG_DAEMON;
 		ai_daemon_client = client;
 		ai_global_stats.daemon_connect_time = ktime_get();
 		mutex_unlock(&ai_daemon_mutex);

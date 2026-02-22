@@ -41,7 +41,14 @@ install: $(TARGET)
 	install -d $(DESTDIR)$(UNITDIR)
 	install -m 644 aicore.service $(DESTDIR)$(UNITDIR)/
 
+install-rootfs: $(TARGET)
+	install -d ../../rootfs/usr/sbin
+	install -m 755 $(TARGET) ../../rootfs/usr/sbin/$(TARGET)
+	install -d ../../rootfs/etc/aicore
+	test -f ../../rootfs/etc/aicore/config.json || \
+		install -m 640 config.json.example ../../rootfs/etc/aicore/config.json
+
 clean:
 	rm -f $(TARGET) $(OBJS)
 
-.PHONY: all install clean
+.PHONY: all install install-rootfs clean

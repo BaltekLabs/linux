@@ -33,7 +33,11 @@ install: $(TARGET)
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
 
+install-rootfs: $(TARGET)
+	install -d ../../rootfs/usr/bin
+	install -m 755 $(TARGET) ../../rootfs/usr/bin/$(TARGET)
+
 clean:
 	rm -f $(TARGET) $(OBJS)
 
-.PHONY: all install clean
+.PHONY: all install install-rootfs clean

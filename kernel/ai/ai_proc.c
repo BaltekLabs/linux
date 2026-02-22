@@ -25,6 +25,7 @@
 #include <linux/utsname.h>
 #include <linux/cpumask.h>
 #include <linux/sysinfo.h>
+#include <linux/sched/loadavg.h>
 #include <linux/ai.h>
 
 static struct proc_dir_entry *proc_ai_dir;

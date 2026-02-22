@@ -1,0 +1,188 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Linux AI OS - x86_64 kernel configuration
+#
+# Based on x86_64_defconfig with:
+#   - AI subsystem enabled (CONFIG_AI_CORE)
+#   - Minimal console + tty support for DTE
+#   - Alpine Linux / musl-libc userspace compatible
+#   - initramfs built-in (no separate rootfs partition)
+#   - isoimage target ready (BIOS/UEFI bootable)
+#
+# To regenerate from scratch:
+#   make x86_64_defconfig
+#   scripts/config --enable CONFIG_AI_CORE ...
+#   make olddefconfig
+#
+
+#
+# Base architecture
+#
+CONFIG_64BIT=y
+CONFIG_X86_64=y
+CONFIG_SMP=y
+CONFIG_NR_CPUS=64
+CONFIG_HZ_250=y
+CONFIG_HZ=250
+
+#
+# Boot / memory
+#
+CONFIG_RELOCATABLE=y
+CONFIG_RANDOMIZE_BASE=n
+CONFIG_PHYSICAL_START=0x1000000
+CONFIG_EFI=y
+CONFIG_EFI_STUB=y
+
+#
+# Core kernel features
+#
+CONFIG_MODULES=y
+CONFIG_MODULE_UNLOAD=y
+CONFIG_KALLSYMS=y
+CONFIG_PROC_FS=y
+CONFIG_SYSFS=y
+CONFIG_TMPFS=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+CONFIG_POSIX_MQUEUE=y
+CONFIG_EPOLL=y
+CONFIG_SIGNALFD=y
+CONFIG_TIMERFD=y
+CONFIG_EVENTFD=y
+CONFIG_FUTEX=y
+CONFIG_INOTIFY_USER=y
+CONFIG_UNIX=y
+
+#
+# Initramfs / rootfs
+#
+CONFIG_BLK_DEV_INITRD=y
+# CONFIG_INITRAMFS_SOURCE is set at build time via make command-line
+# e.g.: make INITRAMFS_SOURCE=rootfs/ isoimage
+# Alternatively set it here:
+# CONFIG_INITRAMFS_SOURCE="rootfs"
+CONFIG_INITRAMFS_COMPRESSION_ZSTD=y
+CONFIG_RD_ZSTD=y
+CONFIG_RD_GZIP=y
+
+#
+# Block device support
+#
+CONFIG_BLK_DEV=y
+CONFIG_BLK_DEV_LOOP=y
+CONFIG_BLK_DEV_RAM=y
+CONFIG_BLK_DEV_RAM_SIZE=65536
+
+#
+# Filesystems
+#
+CONFIG_EXT4_FS=y
+CONFIG_EXT2_FS=y
+CONFIG_TMPFS=y
+CONFIG_TMPFS_XATTR=y
+CONFIG_OVERLAYFS=y
+CONFIG_ISO9660_FS=y
+CONFIG_JOLIET=y
+CONFIG_PROC_FS=y
+CONFIG_SYSFS=y
+CONFIG_DEVPTS_FS=y
+
+#
+# Network (needed for aicore -> LLM API)
+#
+CONFIG_NET=y
+CONFIG_INET=y
+CONFIG_IPV6=y
+CONFIG_PACKET=y
+CONFIG_UNIX=y
+CONFIG_NET_CORE=y
+CONFIG_NETFILTER=y
+CONFIG_ETHERNET=y
+CONFIG_NET_VENDOR_INTEL=y
+CONFIG_E1000=y
+CONFIG_E1000E=y
+CONFIG_VIRTIO_NET=y
+CONFIG_8139TOO=y
+
+#
+# Character devices / TTY
+#
+CONFIG_TTY=y
+CONFIG_UNIX98_PTYS=y
+CONFIG_VT=y
+CONFIG_VT_CONSOLE=y
+CONFIG_DUMMY_CONSOLE=y
+CONFIG_FRAMEBUFFER_CONSOLE=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_HW_CONSOLE=y
+
+#
+# Input (keyboard for DTE)
+#
+CONFIG_INPUT=y
+CONFIG_INPUT_KEYBOARD=y
+CONFIG_KEYBOARD_ATKBD=y
+CONFIG_HID=y
+CONFIG_HID_GENERIC=y
+CONFIG_USB_HID=y
+
+#
+# USB (for USB keyboards / network adapters)
+#
+CONFIG_USB_SUPPORT=y
+CONFIG_USB=y
+CONFIG_USB_EHCI_HCD=y
+CONFIG_USB_XHCI_HCD=y
+
+#
+# Virtio (for QEMU/KVM testing)
+#
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_PCI=y
+CONFIG_VIRTIO_BALLOON=y
+CONFIG_VIRTIO_CONSOLE=y
+
+#
+# ===== Linux AI Subsystem =====
+#
+CONFIG_AI_CORE=y
+CONFIG_AI_PROC_INTERFACE=y
+CONFIG_AI_BUILTIN_CLAWS=y
+CONFIG_AI_MAX_QUEUE=256
+CONFIG_AI_MSG_TIMEOUT_MS=30000
+
+#
+# Cryptography (for TLS in aicore -> API calls via libcurl)
+#
+CONFIG_CRYPTO=y
+CONFIG_CRYPTO_SHA256=y
+CONFIG_CRYPTO_AES=y
+CONFIG_CRYPTO_HMAC=y
+CONFIG_CRYPTO_USER_API_HASH=y
+
+#
+# Security
+#
+CONFIG_SECURITY=y
+CONFIG_SECURITYFS=y
+# Disable SELinux for minimal boot
+# CONFIG_SECURITY_SELINUX is not set
+
+#
+# Power management (allow reboot/poweroff from init)
+#
+CONFIG_ACPI=y
+CONFIG_ACPI_BUTTON=y
+CONFIG_POWER_SUPPLY=y
+
+#
+# Reduce size / debug overhead
+#
+# CONFIG_DEBUG_KERNEL is not set
+# CONFIG_FTRACE is not set
+# CONFIG_KASAN is not set
+CONFIG_PRINTK=y
+CONFIG_EARLY_PRINTK=y
+CONFIG_PANIC_TIMEOUT=5
