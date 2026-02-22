@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Linux AI Subsystem Configuration
+#
+
+menuconfig AI_CORE
+	bool "Linux AI subsystem (OpenClaw native AI integration)"
+	default y
+	help
+	  Enable the Linux AI subsystem, which provides native AI integration
+	  into the kernel through the OpenClaw tool registry and /dev/ai
+	  character device.
+
+	  The AI subsystem enables:
+	    - /dev/ai character device for AI daemon<->kernel communication
+	    - /proc/ai/ interface exposing system state to the AI
+	    - OpenClaw registry: kernel subsystems register callable tools
+	    - Kernel event broadcasting to AI daemon
+
+	  The actual LLM communication is handled by the aicore userspace
+	  daemon (tools/aicore/), which bridges /dev/ai to remote or local
+	  LLM APIs (Anthropic Claude, Ollama, llama.cpp, etc.)
+
+	  If unsure, say Y.
+
+if AI_CORE
+
+config AI_PROC_INTERFACE
+	bool "AI /proc interface (/proc/ai/)"
+	default y
+	depends on PROC_FS
+	help
+	  Creates /proc/ai/ directory with files exposing system state
+	  that the AI can read for contextual awareness:
+	    - /proc/ai/sysinfo    - hardware and kernel version info
+	    - /proc/ai/processes  - top processes by resource usage
+	    - /proc/ai/resources  - CPU, memory, disk summary
+	    - /proc/ai/claws      - list of registered OpenClaw tools
+	    - /proc/ai/stats      - AI subsystem statistics
+
+config AI_BUILTIN_CLAWS
+	bool "Built-in OpenClaw tools (proc, sysctl, dmesg)"
+	default y
+	depends on AI_CORE
+	help
+	  Register the default set of AI tools (claws) that expose core
+	  kernel information to the AI:
+	    - proc_list:   enumerate running processes
+	    - sysctl_get:  read a sysctl value
+	    - sysctl_set:  write a sysctl value (requires AI_FLAG_SUDO)
+	    - dmesg_tail:  last N lines of kernel ring buffer
+	    - mem_info:    memory usage summary
+	    - uptime:      system uptime and load averages
+
+config AI_MAX_QUEUE
+	int "Maximum AI message queue depth"
+	default 256
+	range 16 4096
+	help
+	  Maximum number of AI messages that can be queued between
+	  userspace clients and the aicore daemon. Messages are dropped
+	  (with error returned to sender) when the queue is full.
+
+config AI_MSG_TIMEOUT_MS
+	int "Default AI message timeout (milliseconds)"
+	default 30000
+	range 1000 300000
+	help
+	  How long a blocking AI query waits for a daemon response before
+	  returning -ETIMEDOUT. 30 seconds is reasonable for LLM inference.
+
+endif # AI_CORE

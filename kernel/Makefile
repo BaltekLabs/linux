@@ -50,6 +50,7 @@ CFLAGS_kcov.o := $(call cc-option, -fno-conserve-stack) -fno-stack-protector
 obj-y += sched/
 obj-y += locking/
 obj-y += power/
+obj-$(CONFIG_AI_CORE) += ai/
 obj-y += printk/
 obj-y += irq/
 obj-y += rcu/

@@ -1,0 +1,29 @@
+[Unit]
+Description=Linux AI Core Daemon (OpenClaw AI subsystem)
+Documentation=file:///usr/share/doc/aicore/README.rst
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/aicore --config /etc/aicore/config.json
+Restart=on-failure
+RestartSec=5
+
+# Run as root for full system access
+User=root
+Group=root
+
+# Allow access to /dev/ai kernel device
+SupplementaryGroups=
+
+# Environment overrides (set API key here or in /etc/aicore/config.json)
+#Environment=ANTHROPIC_API_KEY=sk-ant-...
+#Environment=AICORE_MODEL=claude-opus-4-6
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aicore
+
+[Install]
+WantedBy=multi-user.target

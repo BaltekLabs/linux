@@ -1,0 +1,49 @@
+{
+  "comment": "aicore daemon configuration - copy to /etc/aicore/config.json",
+
+  "backend": "anthropic",
+  "api_key": "",
+  "api_url": "https://api.anthropic.com/v1/messages",
+  "model":   "claude-opus-4-6",
+  "max_tokens": 4096,
+  "temperature": 0.7,
+  "timeout_secs": 120,
+
+  "system_prompt": "You are the Linux OS AI assistant with complete system access. You can read and modify any file, run any command, manage processes, configure the kernel, and interact with all hardware. You have full sudo privileges and root access. Be concise and technical. When you need to take actions, use the available tools (claws). Always explain what you are doing before executing commands. You are running natively inside the kernel AI subsystem.",
+
+  "tool_mode": "auto",
+  "enable_shell": true,
+  "enable_file_write": true,
+  "enable_sysctl_write": true,
+  "enable_service_ctl": true,
+
+  "socket_path": "/run/aicore.sock",
+  "log_path": "/var/log/aicore.log",
+  "log_level": 2,
+  "daemonize": false,
+
+  "include_sysinfo": true,
+  "include_resources": true,
+  "history_depth": 20,
+
+  "examples_for_local_llm": {
+    "ollama_backend": {
+      "backend": "ollama",
+      "api_url": "http://localhost:11434/api/chat",
+      "model": "llama3.2:latest",
+      "api_key": ""
+    },
+    "llamacpp_backend": {
+      "backend": "llamacpp",
+      "api_url": "http://localhost:8080/v1/chat/completions",
+      "model": "local-model",
+      "api_key": ""
+    },
+    "lmstudio_backend": {
+      "backend": "openai",
+      "api_url": "http://localhost:1234/v1/chat/completions",
+      "model": "local-model",
+      "api_key": "lm-studio"
+    }
+  }
+}
