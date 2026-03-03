@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+# Install Python dependencies into the vos venv
+if [ ! -d /opt/baltek/vos/venv ]; then
+  python3 -m venv /opt/baltek/vos/venv
+fi
+/opt/baltek/vos/venv/bin/pip install --quiet \
+  pygame psutil aiohttp
+
+rc-update add baltek-vos-ui default >/dev/null 2>&1 || true
+
+exit 0

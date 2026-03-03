@@ -1,0 +1,38 @@
+#!/sbin/openrc-run
+name="baltek-vos-ui"
+description="VoiceOS animated circle UI for Baltek DTE"
+command="/usr/local/sbin/baltek-vos-launch"
+command_background="yes"
+pidfile="/run/baltek-vos-ui.pid"
+output_log="/var/log/baltek/vos-ui.log"
+error_log="/var/log/baltek/vos-ui.err"
+
+depend() {
+  need net localmount
+  after baltek-vm
+}
+
+start_pre() {
+  checkpath -d -m 0755 /var/log/baltek
+
+  # Only start in DTE mode
+  if ! grep -q "baltek_mode=dte" /proc/cmdline 2>/dev/null; then
+    einfo "Not in DTE mode - skipping VoiceOS UI start"
+    return 1
+  fi
+}
+
+start() {
+  ebegin "Starting ${name}"
+  start-stop-daemon --start --background \
+    --make-pidfile --pidfile "$pidfile" \
+    --stdout "$output_log" --stderr "$error_log" \
+    --exec "$command"
+  eend $?
+}
+
+stop() {
+  ebegin "Stopping ${name}"
+  start-stop-daemon --stop --pidfile "$pidfile"
+  eend $?
+}

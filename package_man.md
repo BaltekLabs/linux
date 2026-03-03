@@ -1,15 +1,68 @@
 # AI Linux DTE (Dual-Target Environment) Delivery: ISO + APK (Alpine)
 
 Branch (source of truth for runtime behavior): `claude/ai-linux-integration-MfL1q`
+UI integration branch: `claude/integrate-dot-vos-ui-68niB`
 
 This doc defines a **single product** delivered two ways:
 
-1) **Standalone ISO** (boot in a VM OR install to HDD/SSD)  
+1) **Standalone ISO** (boot in a VM OR install to HDD/SSD)
 2) **APK package set** installable onto an **already-installed Alpine**
 
 And a **boot selector** (“DTE mode”) so a user can choose at boot:
 - Normal Alpine
-- Baltek DTE (boot into your environment)
+- Baltek DTE - VoiceOS UI (`baltek_ui=vos`) — animated circle + Ollama LLM *(default)*
+- Baltek DTE - Chat/Shell (`baltek_ui=chat`) — plain shell fallback
+
+---
+
+## UI: VoiceOS (dot/vos interface)
+
+The `ui/vos/` directory in this repo contains **VoiceOS** — an animated graphical
+interface that acts as the primary AI interaction layer for Baltek DTE.
+
+### What it looks like
+- Black fullscreen window with an **animated morphing circle** at center
+- Circle changes behaviour based on AI state:
+  - **IDLE** — gentle organic drift
+  - **LISTENING** — increased amplitude (user is typing)
+  - **PROCESSING** — energetic, complex motion (Ollama generating)
+  - **RESPONDING** — winding down
+  - **ERROR** — high-intensity shake
+- **Text input** slides up from bottom when any printable key is pressed
+- **Response panel** expands to the right of the circle showing streamed LLM output
+
+### Architecture
+```
+ui/vos/src/
+├── main.py               # VoiceOS entry point (asyncio + pygame)
+├── core/
+│   ├── event/event_bus.py    # Async pub/sub event system
+│   └── llm/
+│       ├── action_system.py  # Action executor (fetch, respond, launch)
+│       ├── mock_llm.py       # Offline mock for testing
+│       ├── monitor/          # CPU/memory resource monitor
+│       ├── registry/         # Model registry (tracks Ollama models)
+│       └── router/           # Task → model router
+└── llm/
+│   ├── adapters/             # Ollama adapter (event-driven)
+│   └── inference/            # Ollama streaming client
+└── ui/
+    ├── circle.py             # Animated circle with state machine
+    ├── text_input.py         # Sliding keyboard input
+    └── components/
+        └── content_display.py  # Scrollable LLM response panel
+```
+
+### Runtime requirements
+- Python 3.9+
+- `pygame`, `psutil`, `aiohttp` (installed by `baltek-vos-ui` package)
+- **Ollama** running locally with at least one model (e.g. `mistral:latest`)
+- X server (started automatically by `baltek-vos-launch` via `xinit`)
+
+### Switching modes at boot
+The boot menu offers two Baltek DTE entries. To change the default, edit
+`/etc/baltek/dte.conf` and set `BALTEK_UI_MODE=chat` or `BALTEK_UI_MODE=vos`.
+You can also pass `baltek_ui=chat` on the kernel command line without editing files.
 
 ---
 
@@ -58,31 +111,51 @@ This avoids “two installs”, keeps drift low, and upgrades are painless.
 
 ---
 
-## 2) Repo layout to add (in your linux repo)
-Add a packaging subtree that an agent can manage without touching kernel code:
+## 2) Repo layout (current)
 
 ```
+ui/
+  vos/                        ← VoiceOS UI source (from DOT submodule)
+    src/
+      main.py
+      core/event/ llm/ ...
+      llm/adapters/ inference/ ...
+      ui/circle.py text_input.py components/
+    requirements.txt
+
 packaging/
   aports/
-    baltek-dte/
+    baltek-dte/               ← meta package (depends on everything)
       APKBUILD
-    baltek-dte-config/
+    baltek-dte-config/        ← OpenRC services + boot helper
       APKBUILD
       baltek-dte-config.post-install
       baltek-dte-config.post-deinstall
       files/
         baltek-mode.initd
         baltek-vm.initd
-        baltek-mode-run
+        baltek-mode-run       ← reads baltek_ui= to select vos or chat
         baltek-vm-run
-        baltek-bootmenu-install
-        dte.conf
+        baltek-bootmenu-install  ← adds BOTH vos and chat boot entries
+        dte.conf              ← default UI mode = vos
         vm.conf
         99-baltek-dte.conf
+    baltek-vos-ui/            ← VoiceOS UI package
+      APKBUILD
+      baltek-vos-ui.post-install
+      baltek-vos-ui.post-deinstall
+      files/
+        baltek-vos-launch     ← launcher (starts ollama + xinit + VoiceOS)
+        baltek-vos-ui.initd   ← OpenRC service
+        xinitrc-vos           ← minimal X session for VoiceOS
   scripts/
     build_apk_repo.sh
     build_iso.sh
     install_on_alpine.sh
+
+DOT/                          ← git submodule (BaltekLabs/DOT)
+  DotOS/                      ← simple Zen Circle visualizer (reference)
+  vos/                        ← VoiceOS source (canonical upstream)
 ```
 
 If you already have VM boot logic somewhere in the branch, you will **wrap it** into:
@@ -158,6 +231,7 @@ arch="all"
 license="MIT"
 depends="
   baltek-dte-config
+  baltek-vos-ui
   qemu-system-x86_64
   qemu-img
   ovmf
@@ -168,6 +242,20 @@ depends="
 build() { :; }
 package() { :; }
 ```
+
+### 4.3 `baltek-vos-ui`
+`packaging/aports/baltek-vos-ui/APKBUILD`
+
+Installs the VoiceOS UI (Python + Pygame) from `ui/vos/src/` in this repo.
+Depends on `python3 py3-pygame py3-psutil py3-aiohttp ollama xorg-server xinit`.
+
+Post-install creates a Python venv at `/opt/baltek/vos/venv/` and pip-installs deps.
+
+Key files installed:
+- `/opt/baltek/vos/` — Python source tree
+- `/usr/local/sbin/baltek-vos-launch` — launcher (starts Ollama + xinit + VoiceOS)
+- `/etc/init.d/baltek-vos-ui` — OpenRC service (only active when `baltek_mode=dte`)
+- `/etc/baltek/xinitrc-vos` — minimal X session script
 
 ### 4.2 `baltek-dte-config`
 `packaging/aports/baltek-dte-config/APKBUILD`
@@ -376,6 +464,13 @@ exec qemu-system-x86_64   -name "${VM_NAME:-baltek-guest}"   -machine q35,accel=
 
 ### 5.3 Boot menu installer (extlinux)
 `packaging/aports/baltek-dte-config/files/baltek-bootmenu-install`
+
+Adds **two** Baltek DTE entries to extlinux:
+- `baltek_ui=vos` — launches VoiceOS graphical UI (default)
+- `baltek_ui=chat` — drops to plain shell (fallback / debug)
+
+The `baltek-mode-run` script reads whichever option was set at boot and starts
+the appropriate service (`baltek-vos-ui` or nothing extra for chat mode).
 ```sh
 #!/bin/sh
 set -e
@@ -543,17 +638,20 @@ Do **not** ship a random `bzImage` blob and call it a day.
 
 ## 10) Agent checklist (execution order)
 
-1) Create the `packaging/` layout and files above.
-2) Build APKs with `build_apk_repo.sh` in an Alpine build env.
-3) Host the repo (simple nginx container is fine).
-4) Validate install on vanilla Alpine:
+1) ✅ Create the `packaging/` layout and files (done in `claude/integrate-dot-vos-ui-68niB`).
+2) ✅ Copy `ui/vos/` source tree from DOT submodule into repo (done).
+3) Build APKs with `build_apk_repo.sh` in an Alpine build env.
+4) Host the repo (simple nginx container is fine).
+5) Validate install on vanilla Alpine:
    - add repo
    - `apk add baltek-dte`
-   - add boot entry
-   - reboot → choose “Baltek DTE”
-5) Build ISO with `build_iso.sh` and validate:
-   - boot ISO in VM → DTE available
-   - install to disk → DTE boot entry works
+   - run `baltek-bootmenu-install`
+   - reboot → choose “Baltek DTE - VoiceOS UI” for graphical AI interface
+   - reboot → choose “Baltek DTE - Chat/Shell” for terminal fallback
+6) Pull an Ollama model: `ollama pull mistral:latest`
+7) Build ISO with `build_iso.sh` and validate:
+   - boot ISO in VM → DTE available with VoiceOS UI
+   - install to disk → both boot entries work
 
 ---
 

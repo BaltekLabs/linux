@@ -1,0 +1,49 @@
+#!/bin/sh
+# baltek-vos-launch - Start the VoiceOS graphical interface
+#
+# This script handles two cases:
+#   1. No X server running -> launch xinit with VoiceOS
+#   2. X server already running -> launch VoiceOS directly
+#
+# Environment variables:
+#   BALTEK_UI_MODE  chat|vos (default: vos)
+#   OLLAMA_HOST     Ollama server URL (default: http://localhost:11434)
+#   DISPLAY         X display (default: :0)
+
+set -e
+
+VOS_DIR="/opt/baltek/vos"
+VENV="$VOS_DIR/venv"
+PYTHON="$VENV/bin/python3"
+MAIN="$VOS_DIR/main.py"
+LOG="/var/log/baltek/vos-ui.log"
+
+# Allow overriding the mode
+BALTEK_UI_MODE="${BALTEK_UI_MODE:-vos}"
+
+# If the user prefers the chat mode, drop back to shell
+if [ "$BALTEK_UI_MODE" = "chat" ]; then
+  exec /bin/sh
+fi
+
+export OLLAMA_HOST="${OLLAMA_HOST:-http://localhost:11434}"
+
+mkdir -p /var/log/baltek
+
+# Start Ollama in the background if not already running
+if ! pgrep -x ollama >/dev/null 2>&1; then
+  ollama serve >>/var/log/baltek/ollama.log 2>&1 &
+  # Give Ollama a moment to bind its port
+  sleep 2
+fi
+
+# If no display is set, use xinit to bring up a minimal X session
+if [ -z "$DISPLAY" ]; then
+  export DISPLAY=:0
+  exec xinit /etc/baltek/xinitrc-vos -- "$DISPLAY" vt1 \
+    >>"$LOG" 2>&1
+else
+  # X is already running - launch directly
+  cd "$VOS_DIR"
+  exec "$PYTHON" "$MAIN" >>"$LOG" 2>&1
+fi
