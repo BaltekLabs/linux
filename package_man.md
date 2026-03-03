@@ -1,4 +1,4 @@
-# Baltek DTE (Dual-Target Environment) Delivery: ISO + APK (Alpine)
+# AI Linux DTE (Dual-Target Environment) Delivery: ISO + APK (Alpine)
 
 Branch (source of truth for runtime behavior): `claude/ai-linux-integration-MfL1q`
 
