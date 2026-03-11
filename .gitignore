@@ -184,3 +184,8 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
+
+# VoiceOS agent memory (user data)
+ui/vos/memory/*.yaml
+ui/vos/memory/*.json
+ui/vos/memory/agent_memory.*

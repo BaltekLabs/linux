@@ -1,0 +1,57 @@
+# VoiceOS / Baltek DTE Agent Configuration
+# ==========================================
+# All values can be overridden with environment variables.
+# See config/settings.py for the full env var mapping.
+
+# LLM Provider Configuration
+llm:
+  # Active provider: ollama | openai | anthropic | groq
+  provider: ollama
+
+  # Active model (provider-specific). Leave blank to use provider default.
+  # ollama:    mistral:latest, llama3.1:latest, codellama:latest, phi:latest
+  # openai:    gpt-4o, gpt-4o-mini, o1, o3-mini
+  # anthropic: claude-sonnet-4-6, claude-opus-4-6, claude-haiku-4-5-20251001
+  # groq:      llama-3.3-70b-versatile, mixtral-8x7b-32768, gemma2-9b-it
+  model: mistral:latest
+
+  # Ollama server URL (local by default)
+  ollama_url: http://localhost:11434
+
+  # API keys (prefer env vars: OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY)
+  # openai_api_key: sk-...
+  # anthropic_api_key: sk-ant-...
+  # groq_api_key: gsk_...
+
+# Tool Configuration
+tools:
+  # Shell command timeout in seconds
+  shell_timeout: 30
+
+  # HTTP request timeout in seconds
+  http_timeout: 30
+
+# Skills Configuration
+skills:
+  # Directories to load skills from (searched recursively for *.md files)
+  paths:
+    - skills/  # relative to vos/ directory
+
+# Persistent Memory
+memory:
+  dir: memory/  # relative to vos/ directory
+
+# Heartbeat (proactive background tasks)
+heartbeat:
+  enabled: true
+  # System health check interval in seconds (default: 5 minutes)
+  health_interval_seconds: 300
+  # Alert thresholds
+  cpu_alert_threshold: 90
+  memory_alert_threshold: 90
+
+# UI Settings
+ui:
+  # Window dimensions (null = 80% of screen)
+  width: null
+  height: null
