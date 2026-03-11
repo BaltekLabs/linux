@@ -281,6 +281,18 @@ class VoiceOS:
             count = self.skill_registry.load_from_dirs(*skills_dirs)
             self.logger.info("Skills loaded: %d", count)
 
+            # Pull remote skills from OpenAI (and any configured) repos
+            remote_cfg = getattr(self.settings, "remote_skills", {}) or {}
+            if remote_cfg.get("enabled", True):
+                cache_dir = remote_cfg.get("cache_dir") or str(vos_dir / ".skill_cache")
+                remote_count = await self.skill_registry.load_remote(
+                    cache_dir=cache_dir,
+                    sources=remote_cfg.get("sources") or None,
+                    ttl_hours=float(remote_cfg.get("ttl_hours", 24)),
+                    github_token=remote_cfg.get("github_token", ""),
+                )
+                self.logger.info("Remote skills added: %d", remote_count)
+
             # Start heartbeat
             if self.settings.heartbeat_enabled:
                 health_task = make_system_health_task(

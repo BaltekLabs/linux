@@ -3,7 +3,8 @@ Skill registry — stores skills and selects the best one for a given query.
 """
 
 import logging
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from skills.loader import Skill, SkillLoader
 
@@ -68,6 +69,42 @@ class SkillRegistry:
         """Return the tool names a skill requests."""
         skill = self._skills.get(skill_name)
         return skill.tools if skill else []
+
+    async def load_remote(
+        self,
+        cache_dir: Optional[str] = None,
+        sources: Optional[List[Dict]] = None,
+        ttl_hours: float = 24.0,
+        github_token: str = "",
+    ) -> int:
+        """
+        Fetch skills from remote GitHub repos and register them.
+        Cached on disk so subsequent startups are instant.
+        Returns number of skills added.
+
+        Args:
+            cache_dir: Where to cache downloaded skill files.
+                       Defaults to  ~/.vos/skill_cache
+            sources:   List of {"owner", "repo", "path"} dicts.
+                       Defaults to openai/openai-agents-python + openai/openai-cookbook.
+            ttl_hours: How long before re-fetching (default 24 h).
+            github_token: Optional GitHub PAT — raises API rate limit to 5000/hr.
+        """
+        from skills.fetcher import RemoteSkillFetcher, DEFAULT_SOURCES
+
+        if cache_dir is None:
+            cache_dir = str(Path.home() / ".vos" / "skill_cache")
+
+        fetcher = RemoteSkillFetcher(
+            cache_dir=Path(cache_dir),
+            ttl_hours=ttl_hours,
+            github_token=github_token,
+        )
+        skills = await fetcher.fetch_all(sources=sources or DEFAULT_SOURCES)
+        for skill in skills:
+            self.register(skill)
+        logger.info("Remote skills registered: %d", len(skills))
+        return len(skills)
 
     def summary(self) -> str:
         lines = [f"Loaded {len(self._skills)} skills:"]

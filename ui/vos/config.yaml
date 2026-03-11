@@ -50,6 +50,33 @@ heartbeat:
   cpu_alert_threshold: 90
   memory_alert_threshold: 90
 
+# Remote Skills — auto-fetch from GitHub repos
+remote_skills:
+  # Set false to disable network fetching entirely (use local cache if available)
+  enabled: true
+
+  # How many hours before re-fetching a file (default 24)
+  ttl_hours: 24
+
+  # Optional GitHub PAT — raises rate limit from 60 to 5000 req/hr
+  # Prefer the env var GITHUB_TOKEN
+  # github_token: ghp_...
+
+  # Where to cache downloaded skill files (default: ui/vos/.skill_cache)
+  # cache_dir: ~/.vos/skill_cache
+
+  # Repos + paths to pull from.  Each entry becomes a batch of skills.
+  sources:
+    - owner: openai
+      repo: openai-agents-python
+      path: docs
+    - owner: openai
+      repo: openai-agents-python
+      path: examples
+    - owner: openai
+      repo: openai-cookbook
+      path: articles
+
 # UI Settings
 ui:
   # Window dimensions (null = 80% of screen)

@@ -57,6 +57,7 @@ class Settings:
             "OPENAI_API_KEY": ("llm", "openai_api_key"),
             "ANTHROPIC_API_KEY": ("llm", "anthropic_api_key"),
             "GROQ_API_KEY": ("llm", "groq_api_key"),
+            "GITHUB_TOKEN": ("remote_skills", "github_token"),
         }
         for env_key, (section, key) in env_map.items():
             val = os.environ.get(env_key)
@@ -129,6 +130,27 @@ class Settings:
     @property
     def heartbeat_health_interval(self) -> int:
         return int(self.get("heartbeat", "health_interval_seconds", default=300))
+
+    # --- Remote skills ---
+    @property
+    def remote_skills(self) -> Dict[str, Any]:
+        """
+        Returns the full remote_skills config block, e.g.::
+
+            remote_skills:
+              enabled: true
+              ttl_hours: 24
+              github_token: ""
+              cache_dir: ""         # defaults to ui/vos/.skill_cache
+              sources:
+                - owner: openai
+                  repo: openai-agents-python
+                  path: docs
+                - owner: openai
+                  repo: openai-cookbook
+                  path: articles
+        """
+        return self.get("remote_skills", default={}) or {}
 
     # --- UI ---
     @property
