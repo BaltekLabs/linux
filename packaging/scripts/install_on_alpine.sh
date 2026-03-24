@@ -162,18 +162,29 @@ GH_URL="https://${GH_TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git"
 
 rm -rf "$CLONE_DIR"
 
-git clone \
-  --filter=blob:none \
-  --no-checkout \
-  --depth=1 \
-  --branch "$REPO_BRANCH" \
-  "$GH_URL" \
-  "$CLONE_DIR"
+# --filter=blob:none requires git ≥ 2.27 with partial clone support.
+# Detect support and fall back to a plain shallow clone on older git.
+GIT_VER="$(git --version | awk '{print $3}')"
+GIT_MAJOR="$(echo "$GIT_VER" | cut -d. -f1)"
+GIT_MINOR="$(echo "$GIT_VER" | cut -d. -f2)"
 
-cd "$CLONE_DIR"
-git sparse-checkout init --cone
-git sparse-checkout set ui/vos packaging
-git checkout "$REPO_BRANCH"
+if [ "$GIT_MAJOR" -gt 2 ] || { [ "$GIT_MAJOR" -eq 2 ] && [ "$GIT_MINOR" -ge 27 ]; }; then
+  # Modern git: partial clone + sparse checkout (downloads far less data)
+  git clone --filter=blob:none --no-checkout --depth=1 --branch "$REPO_BRANCH" "$GH_URL" "$CLONE_DIR"
+  cd "$CLONE_DIR"
+  git sparse-checkout init --cone
+  git sparse-checkout set ui/vos packaging
+  git checkout "$REPO_BRANCH"
+else
+  # Older git: plain shallow clone, then delete unneeded dirs to save space
+  warn "git $GIT_VER detected — sparse clone not supported, using shallow clone"
+  git clone --depth=1 --branch "$REPO_BRANCH" "$GH_URL" "$CLONE_DIR"
+  cd "$CLONE_DIR"
+  # Remove large kernel dirs we don't need
+  for d in arch block crypto drivers fs init ipc kernel lib mm net security sound; do
+    rm -rf "${CLONE_DIR:?}/$d"
+  done
+fi
 
 ok "Cloned: ui/vos/ and packaging/"
 
