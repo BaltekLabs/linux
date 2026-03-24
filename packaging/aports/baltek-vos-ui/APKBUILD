@@ -18,14 +18,12 @@ depends="
   mesa-dri-gallium
   libseat
   xdg-user-dirs
+  git
 "
 install="$pkgname.post-install $pkgname.post-deinstall"
 
-# The VoiceOS source tarball is produced by packaging/scripts/bundle-source.sh.
-# Run that script first, then 'abuild checksum' to update sha512sums.
-# Installer scripts in files/ are copied flat into $srcdir by abuild.
+# Installer scripts (local files, copied flat into $srcdir by abuild)
 source="
-  baltek-vos-ui-${pkgver}.tar.gz
   files/baltek-vos-launch
   files/baltek-vos-ui.initd
   files/baltek-vos-app
@@ -33,7 +31,34 @@ source="
 "
 sha512sums="SKIP"
 
-builddir="$srcdir/baltek-vos-ui-${pkgver}"
+# The VoiceOS source is fetched via sparse git clone so we only pull
+# ui/vos/ from the repo instead of the entire kernel tree (~1 GB).
+_gitrepo="https://github.com/BaltekLabs/linux.git"
+_gittag="v${pkgver}"
+
+# Override abuild's standard fetch to do a sparse clone.
+# Only ui/vos/ is checked out; nothing else from the kernel tree is downloaded.
+fetch() {
+  local dest="$srcdir/linux"
+
+  if [ ! -d "$dest/.git" ]; then
+    msg "Sparse-cloning $_gitrepo (tag: $_gittag, path: ui/vos)"
+    git clone \
+      --filter=blob:none \
+      --no-checkout \
+      --depth=1 \
+      --branch "$_gittag" \
+      "$_gitrepo" \
+      "$dest"
+  fi
+
+  cd "$dest"
+  git sparse-checkout init --cone
+  git sparse-checkout set ui/vos
+  git checkout "$_gittag"
+}
+
+builddir="$srcdir/linux/ui/vos"
 
 build() { :; }
 
