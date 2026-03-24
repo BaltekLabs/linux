@@ -13,9 +13,12 @@ depends="
   py3-psutil
   py3-aiohttp
   ollama
-  xorg-server
-  xinit
-  xf86-video-fbdev
+  hyprland
+  seatd
+  wlroots
+  mesa-dri-gallium
+  libseat
+  xdg-user-dirs
 "
 install="$pkgname.post-install $pkgname.post-deinstall"
 source=""
@@ -42,8 +45,11 @@ package() {
   install -m 0755 "$srcdir/files/baltek-vos-ui.initd" \
     "$pkgdir/etc/init.d/baltek-vos-ui"
 
-  # Install xinit config
+  # Install Wayland session config and app launcher
   install -d "$pkgdir/etc/baltek"
-  install -m 0644 "$srcdir/files/xinitrc-vos" \
-    "$pkgdir/etc/baltek/xinitrc-vos"
+  install -m 0644 "$srcdir/files/hyprland-vos.conf" \
+    "$pkgdir/etc/baltek/hyprland-vos.conf"
+
+  install -m 0755 "$srcdir/files/baltek-vos-app" \
+    "$pkgdir/usr/local/sbin/baltek-vos-app"
 }
