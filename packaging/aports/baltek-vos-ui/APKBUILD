@@ -1,4 +1,3 @@
-# Maintainer: BaltekLabs <balteklabssc@gmail.com>
 pkgname=baltek-vos-ui
 pkgver=0.1.0
 pkgrel=0
@@ -21,35 +20,44 @@ depends="
   xdg-user-dirs
 "
 install="$pkgname.post-install $pkgname.post-deinstall"
-source=""
-builddir="$srcdir"
+
+# The VoiceOS source tarball is produced by packaging/scripts/bundle-source.sh.
+# Run that script first, then 'abuild checksum' to update sha512sums.
+# Installer scripts in files/ are copied flat into $srcdir by abuild.
+source="
+  baltek-vos-ui-${pkgver}.tar.gz
+  files/baltek-vos-launch
+  files/baltek-vos-ui.initd
+  files/baltek-vos-app
+  files/hyprland-vos.conf
+"
+sha512sums="SKIP"
+
+builddir="$srcdir/baltek-vos-ui-${pkgver}"
 
 build() { :; }
 
 package() {
-  # Install the VoiceOS source tree
+  # VoiceOS Python source → /opt/baltek/vos/
   install -d "$pkgdir/opt/baltek/vos"
-  cp -r "$builddir"/../../../../../ui/vos/src/. "$pkgdir/opt/baltek/vos/"
-
-  # Install requirements
-  install -m 0644 "$builddir"/../../../../../ui/vos/requirements.txt \
+  cp -r "$builddir/src/." "$pkgdir/opt/baltek/vos/"
+  install -m 0644 "$builddir/requirements.txt" \
     "$pkgdir/opt/baltek/vos/requirements.txt"
 
-  # Install launcher script
+  # Launcher scripts → /usr/local/sbin/
   install -d "$pkgdir/usr/local/sbin"
-  install -m 0755 "$srcdir/files/baltek-vos-launch" \
+  install -m 0755 "$srcdir/baltek-vos-launch" \
     "$pkgdir/usr/local/sbin/baltek-vos-launch"
+  install -m 0755 "$srcdir/baltek-vos-app" \
+    "$pkgdir/usr/local/sbin/baltek-vos-app"
 
-  # Install OpenRC service
+  # OpenRC service
   install -d "$pkgdir/etc/init.d"
-  install -m 0755 "$srcdir/files/baltek-vos-ui.initd" \
+  install -m 0755 "$srcdir/baltek-vos-ui.initd" \
     "$pkgdir/etc/init.d/baltek-vos-ui"
 
-  # Install Wayland session config and app launcher
+  # Hyprland kiosk config
   install -d "$pkgdir/etc/baltek"
-  install -m 0644 "$srcdir/files/hyprland-vos.conf" \
+  install -m 0644 "$srcdir/hyprland-vos.conf" \
     "$pkgdir/etc/baltek/hyprland-vos.conf"
-
-  install -m 0755 "$srcdir/files/baltek-vos-app" \
-    "$pkgdir/usr/local/sbin/baltek-vos-app"
 }
