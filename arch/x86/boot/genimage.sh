@@ -136,7 +136,11 @@ filesizes() {
 # of possible alternatives
 sharedirs() {
 	local dir file
-	for dir in /usr/share /usr/lib64 /usr/lib; do
+	# Include local .build-deps extraction path (no-root fallback)
+	local script_dir deps_dir
+	script_dir="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+	deps_dir="${script_dir}/../../../.build-deps/usr/lib"
+	for dir in /usr/share /usr/lib64 /usr/lib "$deps_dir"; do
 		for file; do
 			echo "$dir/$file"
 			echo "$dir/${file^^}"
